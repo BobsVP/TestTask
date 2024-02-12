@@ -5,10 +5,12 @@
 #include<map>
 #include<algorithm>
 #include<iomanip>
+#include<locale>
+#include<codecvt>
 
 const std::string FileSportsmens = "competitors2.json";
 const std::string FileResultsRun = "results_RUN.txt";
-const std::string FileResultsoutput = "final_results.json";
+const std::string FileResultsOutput = "final_results.json";
 
 struct timer
 {
@@ -28,7 +30,8 @@ using Sptmn = std::map<int, Sportsmen>;
 
 void parserFileSportsmens(const std::string& File, Sptmn& Sportmens); //Парсим файл с данными спортсменов
 void parserFileResults(const std::string& File, Sptmn& Sportmens); //Парсим файл с результатами
-void outputFileResults(const std::string& File, Sptmn& Sportmens, const std::vector<int>& Keys); //Вывод результатов
+void outputResultsScr(Sptmn& Sportmens, const std::vector<int>& Keys); //Вывод результатов на консоль
+void outputResultsFile(const std::string& File, Sptmn& Sportmens, const std::vector<int>& Keys); //Вывод результатов в файл
 void Shapka(); // Печатаем шапку таблицы
 void PromegStr(); // Печатаем промежуточные элементы таблицы
 void ZaverTab(); // Печатаем завершение таблицы
@@ -63,7 +66,8 @@ int main() {
 	}
 	std::sort(Keys.begin(), Keys.end(), 
 		[&Sportmens](int a, int b) {return Sportmens[a].result < Sportmens[b].result; });
-	outputFileResults(FileResultsoutput, Sportmens, Keys);
+	outputResultsScr(Sportmens, Keys);
+	outputResultsFile(FileResultsOutput, Sportmens, Keys);
 	return 0;
 }
 
@@ -89,10 +93,10 @@ void parserFileSportsmens(const std::string& File, Sptmn& Sportmens) {  //Парсим
 			if (poziciya == std::string::npos) continue;
 			else if (poziciya == 4) {	//Позиция для Name, Surname
 				if (line.find("Name") != std::string::npos) { 
-					name = line.substr(13, line.rfind("\"") - 13); // 13 это позиция начала поля Name 
+					name = line.substr(13, line.rfind("\"") - 13); // 13 позиция начала поля Name 
 				}
 				if (line.find("Surname") != std::string::npos) { 
-					surname = line.substr(16, line.rfind("\"") - 16);   // 16 это позиция начала поля Surname
+					surname = line.substr(16, line.rfind("\"") - 16);   // 16 позиция начала поля Surname
 					flag = true;
 				}
 			}
@@ -126,7 +130,7 @@ void parserFileResults(const std::string& File, Sptmn& Sportmens) { //Парсим фай
 		if (B != 0xEF || O != 0xBB || M != 0xBF) {
 			in.seekg(0, std::ios_base::beg);
 		}
-		int sign = 0, hour = 0, minutes = 0/*, seconds = 0, miliseconds = 0*/;
+		int sign = 0, hour = 0, minutes = 0;
 		const int sec_per_min = 60;
 		std::string startorend, seconds;
 		while (!in.eof()) {
@@ -161,10 +165,10 @@ void parserFileResults(const std::string& File, Sptmn& Sportmens) { //Парсим фай
 	in.close();
 }
 
-void outputFileResults(const std::string& File, Sptmn& Sportmens, const std::vector<int>& Keys) {
+void outputResultsScr(Sptmn& Sportmens, const std::vector<int>& Keys) {
 	Shapka();
 	PromegStr();
-	int count = 0;
+	//int count = 0;
 	for (int i = 0; i < Keys.size(); ++i) {
 		int Z = Keys[i];
 		std::wcout << L"\x2502";
@@ -172,6 +176,8 @@ void outputFileResults(const std::string& File, Sptmn& Sportmens, const std::vec
 		std::wcout << L"\x2502";
 		std::cout << std::setw(15) << std::left << Z;
 		std::wcout << L"\x2502";
+		unsigned char zzzz = Sportmens[Z].Surname.c_str()[0];
+		unsigned char zzzz1 = Sportmens[Z].Surname.c_str()[1];
 		int k = Sportmens[Z].Surname.size() + (11 - Sportmens[Z].Surname.size() / 2);
 		std::cout << std::setw(k) << std::left << Sportmens[Z].Surname;
 		std::wcout << L"\x2502";
@@ -239,4 +245,39 @@ void ZaverTab() {
 	std::wcout << L"\x2534";
 	for (int i = 0; i < 9; ++i)std::wcout << L"\x2500";
 	std::wcout << L"\x2518" << std::endl;
+}
+
+void outputResultsFile(const std::string& File, Sptmn& Sportmens, const std::vector<int>& Keys) {
+	std::wofstream out(File);
+	const std::locale utf8_locale = std::locale(std::locale(), new std::codecvt_utf8<wchar_t>());
+	if (out.is_open()) {
+		out.imbue(utf8_locale);
+		wchar_t BOM = { 0xFEFF };
+		out << BOM;  //Добавляем BOM
+		out << "{\n";
+		for (int i = 0; i < Keys.size(); ++i) {
+			int Z = Keys[i];
+			out << "    \"" << i + 1 << "\": {\n";
+			out << "        \"";
+			out << L"Нагрудный номер\": \"" << Z << "\",\n";
+			out << "        \"";
+			std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+			std::wstring wstr = converter.from_bytes(Sportmens[Z].Surname.c_str());
+			out << L"Имя\": \"" << wstr << "\",\n";
+			out << "        \"";
+			wstr = converter.from_bytes(Sportmens[Z].Name.c_str());
+			out << L"Фамилия\": \"" << wstr << "\",\n";
+			out << "        \"";
+			std::string msek = std::to_string(Sportmens[Z].result.seconds);
+			if ((int)Sportmens[Z].result.seconds < 10) msek = '0' + msek;
+			msek = msek.substr(0, 5);
+			wstr = converter.from_bytes(msek.c_str());
+			out << L"Результат\": \""; 
+			if (Sportmens[Z].result.minutes < 10) out << '0';
+			out << Sportmens[Z].result.minutes << ":" << wstr << "\"\n";
+			out << "    },\n";
+		}
+		out << "}";
+	}
+	out.close();
 }
