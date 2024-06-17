@@ -188,7 +188,6 @@ void ZaverTab() {
 void outputResultsScr(Sptmn& Sportmens, const std::vector<int>& Keys) {
 	Shapka();
 	PromegStr();
-	//int count = 0;
 	for (size_t i = 0; i < Keys.size(); ++i) {
 		int sign = Keys[i];
 		std::wcout << L"\x2502";
@@ -203,12 +202,6 @@ void outputResultsScr(Sptmn& Sportmens, const std::vector<int>& Keys) {
 		std::wcout << std::setw(8) << std::left << Sportmens[sign].Resultat;
 		std::wcout << L" \x2502" << std::endl;
 		if (i < Keys.size() - 1) PromegStr();
-		//++count;
-		//if (count > 24)
-		//{
-		//	count = 0;
-		//	system("pause");
-		//}
 	}
 	ZaverTab();
 }
