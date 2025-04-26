@@ -5,11 +5,11 @@
 #include"Header.h"
 
 bool operator<(const timer& arg1, const timer& arg2) {	//Сортировка результатов
-	if (arg1.hour == 0 && arg1.minutes == 0 && (int)arg1.seconds == 0) return false;
-	if (arg2.hour == 0 && arg2.minutes == 0 && (int)arg2.seconds == 0) return true;
-	if (arg1.minutes == arg2.minutes)
+	if (arg1.seconds == 0 && arg1.miliseconds == 0) return false;
+	if (arg2.seconds == 0 && arg2.miliseconds == 0) return true;
+	if (arg1.seconds == arg2.seconds)
 	{
-		if (arg1.seconds < arg2.seconds) {
+		if (arg1.miliseconds < arg2.miliseconds) {
 			return true;
 		}
 		else
@@ -17,7 +17,7 @@ bool operator<(const timer& arg1, const timer& arg2) {	//Сортировка р
 			return false;
 		}
 	}
-	else if (arg1.minutes > arg2.minutes)
+	else if (arg1.seconds > arg2.seconds)
 	{
 		return false;
 	}
@@ -88,45 +88,57 @@ void parserFileResults(const std::string& File, Sptmn& Sportmens) { //Парси
 		if (B != 0xEF || O != 0xBB || M != 0xBF) {
 			in.seekg(0, std::ios_base::beg);
 		}
-		int sign = 0, hour = 0, minutes = 0;
+		long sign = 0, hour = 0, minutes = 0, seconds = 0;
+		long milseconds;
 		const int sec_per_min = 60;
-		std::string startorend, seconds;
+		const int sec_per_hour = sec_per_min * 60;
+		std::string startorend;
 		while (!in.eof()) {
-			in >> sign >> startorend >> hour >> B >> minutes >> B >> seconds;
+			in >> sign >> startorend >> hour >> B >> minutes >> B >> seconds >> B >> milseconds;
 			if (in.fail()) break;
 			if (Sportmens.count(sign)) {
 				if (startorend == "start") {
-					Sportmens[sign].result.hour = hour;
-					Sportmens[sign].result.minutes = minutes;
-					Sportmens[sign].result.seconds = std::stof(seconds);
+					Sportmens[sign].result.seconds = -hour * sec_per_hour;
+					Sportmens[sign].result.seconds -= minutes * sec_per_min;
+					Sportmens[sign].result.seconds -= seconds;
+					Sportmens[sign].result.miliseconds = -milseconds;
 				}
 				if (startorend == "finish") {
-					Sportmens[sign].result.hour = hour - Sportmens[sign].result.hour;
-					Sportmens[sign].result.minutes = minutes - Sportmens[sign].result.minutes;
-					float varszpt = std::stof(seconds);
-					std::replace(seconds.begin(), seconds.end(), ',', '.');
-					float varstchk = std::stof(seconds);
-					if (varszpt > varstchk)
-						Sportmens[sign].result.seconds = varszpt - Sportmens[sign].result.seconds;
+					Sportmens[sign].result.seconds += (hour * sec_per_hour);
+					Sportmens[sign].result.seconds += (minutes * sec_per_min);
+					Sportmens[sign].result.seconds += seconds;
+					Sportmens[sign].result.miliseconds += milseconds;
+					hour = Sportmens[sign].result.seconds / sec_per_hour;
+					minutes = (Sportmens[sign].result.seconds / sec_per_min) - (hour * sec_per_min);
+					seconds = Sportmens[sign].result.seconds - (minutes * sec_per_min) - (hour * sec_per_min);
+					//float varszpt = std::stof(seconds);
+					//std::replace(seconds.begin(), seconds.end(), ',', '.');
+					//float varstchk = std::stof(seconds);
+					//if (varszpt > varstchk)
+					//	Sportmens[sign].result.seconds = varszpt - Sportmens[sign].result.seconds;
+					//else
+					//	Sportmens[sign].result.seconds = varstchk - Sportmens[sign].result.seconds;
+					//if (Sportmens[sign].result.seconds < 0) {
+					//	--Sportmens[sign].result.minutes;
+					//	Sportmens[sign].result.seconds += sec_per_min;
+					//}
+					//if (Sportmens[sign].result.minutes < 0) {
+					//	--Sportmens[sign].result.hour;
+					//	Sportmens[sign].result.minutes += sec_per_min;
+					//}
+					if (minutes < 10)
+						Sportmens[sign].Resultat = L'0' + std::to_wstring(minutes) + L":";
 					else
-						Sportmens[sign].result.seconds = varstchk - Sportmens[sign].result.seconds;
-					if (Sportmens[sign].result.seconds < 0) {
-						--Sportmens[sign].result.minutes;
-						Sportmens[sign].result.seconds += sec_per_min;
-					}
-					if (Sportmens[sign].result.minutes < 0) {
-						--Sportmens[sign].result.hour;
-						Sportmens[sign].result.minutes += sec_per_min;
-					}
-					if ((int)Sportmens[sign].result.minutes < 10)
-						Sportmens[sign].Resultat = L'0' + std::to_wstring(Sportmens[sign].result.minutes) + L":";
+						Sportmens[sign].Resultat = std::to_wstring(minutes) + L":";
+					if (seconds < 10)
+						Sportmens[sign].Resultat += (L'0' + std::to_wstring(seconds));
 					else
-						Sportmens[sign].Resultat = std::to_wstring(Sportmens[sign].result.minutes) + L":";
-					if ((int)Sportmens[sign].result.seconds < 10)
-						Sportmens[sign].Resultat += (L'0' + std::to_wstring(Sportmens[sign].result.seconds));
+						Sportmens[sign].Resultat += std::to_wstring(seconds);
+					if ((milseconds + 5000) / 10000 < 10)
+						Sportmens[sign].Resultat += (L",0" + std::to_wstring((milseconds + 5000) / 10000));
 					else
-						Sportmens[sign].Resultat += std::to_wstring(Sportmens[sign].result.seconds);
-					Sportmens[sign].Resultat = Sportmens[sign].Resultat.substr(0, 8);
+						Sportmens[sign].Resultat += (L',' + std::to_wstring((milseconds + 5000) / 10000));
+					//Sportmens[sign].Resultat = Sportmens[sign].Resultat.substr(0, 8);
 				}
 			}
 			else

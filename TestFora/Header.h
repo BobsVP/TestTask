@@ -7,9 +7,8 @@
 
 struct timer
 {
-	int hour = 0;
-	int minutes = 0;
-	float seconds = 0.0;
+	long seconds = 0;
+	long miliseconds = 0;
 };
 
 struct Sportsmen
