@@ -24,56 +24,91 @@ bool operator<(const timer& arg1, const timer& arg2) {	//Сортировка р
 	return true;
 }
 
+std::wstring extractData(const std::wstring& input) { // Извлекаем содержимое между кавычками
+	size_t end = input.rfind(L'"');
+	if (end == std::wstring::npos) {
+		return L"";
+	}
+
+	size_t start = input.rfind(L'"', end - 1);
+	if (start == std::wstring::npos) {
+		return L"";
+	}
+
+	return input.substr(start + 1, end - start - 1);
+}
 
 void parserFileSportsmens(const std::string& File, Sptmn& Sportmens, std::vector<int>& Keys) {  //Парсим файл с данными спортсменов
-	std::ifstream in(File);
-	if (in.is_open()) {
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-		unsigned char B, O, M; //Проверка BOM
-		B = in.get();
-		O = in.get();
-		M = in.get();
-		if (B != 0xEF || O != 0xBB || M != 0xBF) {
-			in.seekg(0, std::ios_base::beg);
-		}
+	
+	std::wifstream in(File);
 
-		bool flag = false;
-		std::string sign, name, surname;
-
-		while (!in.eof()) {
-			std::string line;
-			std::getline(in, line);
-			long long poziciya = line.find("\"");
-			if (poziciya == std::string::npos) continue;
-			else if (poziciya == 4) {	// Name, Surname
-				if (line.find("Name") != std::string::npos) {
-					name = line.substr(13, line.rfind("\"") - 13); // 13 Позиция начала поля Name 
-				}
-				if (line.find("Surname") != std::string::npos) {
-					surname = line.substr(16, line.rfind("\"") - 16);   // 16 Позиция начала поля Surname
-					flag = true;
-				}
-			}
-			else if (poziciya == 2) {	//Sign
-				for (auto simb : line) {
-					if (isdigit(simb)) sign += simb;
-				}
-			}
-			if (flag)
-			{
-				int key = std::stoi(sign);
-				Keys.push_back(key);
-				Sportmens[key] = 
-					Sportsmen{ converter.from_bytes(name.c_str()), converter.from_bytes(surname.c_str()) };
-				flag = false;
-				sign.clear();
-				name.clear();
-				surname.clear();
-			}
-		}
-	}
-	else
+	if (!in.is_open()) {
 		std::cerr << "Failed to open file " << File << std::endl;;
+	}
+
+	in.imbue(std::locale("ru_RU.UTF-8"));
+
+	int sign;
+	std::wstring name, surname, line;
+
+	std::getline(in, line);
+
+	while (!in.eof()) {
+		std::getline(in, line);
+		std::wstring tmp;
+		if (line.find(L"{") != std::string::npos) {
+			std::copy_if(line.cbegin(), line.cend(), std::back_inserter(tmp), ::isdigit);
+			sign = std::stoi(tmp);
+		}
+		if (line.find(L"Name") != std::string::npos) name = extractData(line);
+		if (line.find(L"Surname") != std::string::npos) {
+			surname = extractData(line);
+			Keys.push_back(sign);
+			Sportmens[sign] = Sportsmen{ sign, name, surname };
+		}
+		//if (line.find(L"},") == std::string::npos) break;
+	}
+		//std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
+		//unsigned char B, O, M; //Проверка BOM
+		//B = in.get();
+		//O = in.get();
+		//M = in.get();
+		//if (B != 0xEF || O != 0xBB || M != 0xBF) {
+		//	in.seekg(0, std::ios_base::beg);
+		//}
+
+		//bool flag = false;
+
+		//while (!in.eof()) {
+		//	std::string line;
+		//	long long poziciya = line.find("\"");
+		//	if (poziciya == std::string::npos) continue;
+		//	else if (poziciya == 4) {	// Name, Surname
+		//		if (line.find("Name") != std::string::npos) {
+		//			name = line.substr(13, line.rfind("\"") - 13); // 13 Позиция начала поля Name 
+		//		}
+		//		if (line.find("Surname") != std::string::npos) {
+		//			surname = line.substr(16, line.rfind("\"") - 16);   // 16 Позиция начала поля Surname
+		//			flag = true;
+		//		}
+		//	}
+		//	else if (poziciya == 2) {	//Sign
+		//		for (auto simb : line) {
+		//			if (isdigit(simb)) sign += simb;
+		//		}
+		//	}
+		//	if (flag)
+		//	{
+		//		int key = std::stoi(sign);
+		//		Keys.push_back(key);
+		//		Sportmens[key] = 
+		//			Sportsmen{ converter.from_bytes(name.c_str()), converter.from_bytes(surname.c_str()) };
+		//		flag = false;
+		//		sign.clear();
+		//		name.clear();
+		//		surname.clear();
+		//	}
+		//}
 	in.close();
 }
 

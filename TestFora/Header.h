@@ -13,6 +13,7 @@ struct timer
 
 struct Sportsmen
 {
+	int Sign;
 	std::wstring Name;
 	std::wstring Surname;
 	std::wstring Resultat{ L"00:00,00" };
