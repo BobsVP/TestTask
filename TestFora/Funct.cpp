@@ -135,71 +135,67 @@ void parserFileResults(const std::string& File, std::vector<Sportsmen>& Particip
 	in.close();
 }
 
-void Shapka() {
-	std::wcout << L"\x250C";
-	for (int i = 0; i < 13; ++i)std::wcout << L"\x2500";
-	std::wcout << L"\x252C";
-	for (int i = 0; i < 15; ++i)std::wcout << L"\x2500";
-	std::wcout << L"\x252C";
-	for (int i = 0; i < 11; ++i)std::wcout << L"\x2500";
-	std::wcout << L"\x252C";
-	for (int i = 0; i < 13; ++i)std::wcout << L"\x2500";
-	std::wcout << L"\x252C";
-	for (int i = 0; i < 9; ++i)std::wcout << L"\x2500";
-	std::wcout << L"\x2510" << std::endl;
-	std::wcout << std::setw(14) << std::left << L"\x2502Занятое место";
-	std::wcout << std::setw(15) << std::left << L"\x2502Нагрудный номер";
-	std::wcout << std::setw(12) << std::left << L"\x2502Имя";
-	std::wcout << std::setw(14) << std::left << L"\x2502Фамилия";
-	std::wcout << std::setw(15) << std::left << L"\x2502Результат\x2502" << std::endl;
+void Fillers(const std::vector<size_t>& columns, const wchar_t symb, const wchar_t symb1) {
+	for (const auto X : columns) {
+		for (size_t i = 0; i < X; ++i) std::wcout << symb;
+		std::wcout << symb1;
+	}
+	std::wcout << '\b';
 }
 
-void PromegStr() {
-	std::wcout << L"\x251C";
-	for (int i = 0; i < 13; ++i)std::wcout << L"\x2500";
-	std::wcout << L"\x253C";
-	for (int i = 0; i < 15; ++i)std::wcout << L"\x2500";
-	std::wcout << L"\x253C";
-	for (int i = 0; i < 11; ++i)std::wcout << L"\x2500";
-	std::wcout << L"\x253C";
-	for (int i = 0; i < 13; ++i)std::wcout << L"\x2500";
-	std::wcout << L"\x253C";
-	for (int i = 0; i < 9; ++i)std::wcout << L"\x2500";
-	std::wcout << L"\x2524" << std::endl;
-}
-
-void ZaverTab() {
-	std::wcout << L"\x2514";
-	for (int i = 0; i < 13; ++i)std::wcout << L"\x2500";
-	std::wcout << L"\x2534";
-	for (int i = 0; i < 15; ++i)std::wcout << L"\x2500";
-	std::wcout << L"\x2534";
-	for (int i = 0; i < 11; ++i)std::wcout << L"\x2500";
-	std::wcout << L"\x2534";
-	for (int i = 0; i < 13; ++i)std::wcout << L"\x2500";
-	std::wcout << L"\x2534";
-	for (int i = 0; i < 9; ++i)std::wcout << L"\x2500";
-	std::wcout << L"\x2518" << std::endl;
+template<typename T>
+void Fillers_data(const size_t colm, T str) {
+	std::wcout << L'\x2502';
+	std::wcout << std::setw(colm) << std::left << str;
 }
 
 void outputResultsScr(std::vector<Sportsmen>& Participants) {
-	Shapka();
-	PromegStr();
-	for (size_t i = 0; i < Participants.size(); ++i) {
-		std::wcout << L"\x2502";
-		std::wcout << std::setw(13) << std::left << i + 1;
-		std::wcout << L"\x2502";
-		std::wcout << std::setw(15) << std::left << Participants[i].Sign;
-		std::wcout << L"\x2502";
-		std::wcout << std::setw(11) << std::left << Participants[i].Surname;
-		std::wcout << L"\x2502";
-		std::wcout << std::setw(11) << std::left << Participants[i].Name << "\t";
-		std::wcout << L"\x2502";
-		std::wcout << std::setw(8) << std::left << Participants[i].Resultat;
-		std::wcout << L" \x2502" << std::endl;
-		if (i < Participants.size() - 1) PromegStr();
+	std::wstring o_place = L"Занятое место";							// Определяем ширину колонок
+	size_t o_place_legth = o_place.size();
+	std::wstring b_number = L"Нагрудный номер";
+	size_t b_number_legth = b_number.size();
+	std::wstring Surname = L"Имя";
+	size_t Surname_legth = Surname.size();
+	std::wstring Name = L"Фамилия";
+	size_t Name_legth = Name.size();
+	std::wstring Result = L"Результат";
+	size_t Result_legth = Result.size();
+	for (const auto X : Participants) {
+		Surname_legth = std::max(X.Surname.size(), Surname_legth);
+		Name_legth = std::max(X.Name.size(), Name_legth);
+		Result_legth = std::max(X.Resultat.size(), Result_legth);
 	}
-	ZaverTab();
+	std::vector<size_t> columns{ o_place_legth, b_number_legth, Surname_legth, Name_legth, Result_legth };
+
+	std::wcout << L'\x250C';											// Печатаем шапку таблицы
+	Fillers(columns, L'\x2500', L'\x252C');
+	std::wcout << L'\x2510' << std::endl;
+	Fillers_data(o_place_legth, o_place);
+	Fillers_data(b_number_legth, b_number);
+	Fillers_data(Surname_legth, Surname);
+	Fillers_data(Name_legth, Name);
+	Fillers_data(Result_legth, Result);
+	std::wcout << L'\x2502' << std::endl;
+	std::wcout << L'\x251C';
+	Fillers(columns, L'\x2500', L'\x253C');
+	std::wcout << L'\x2524' << std::endl;
+
+	for (size_t i = 0; i < Participants.size(); ++i) {					// Печатаем таблицу
+		Fillers_data(o_place_legth, i + 1);
+		Fillers_data(b_number_legth, Participants[i].Sign);
+		Fillers_data(Surname_legth, Participants[i].Surname);
+		Fillers_data(Name_legth, Participants[i].Name);
+		Fillers_data(Result_legth, Participants[i].Resultat);
+		std::wcout << L'\x2502' << std::endl;
+		if (i < Participants.size() - 1) {
+			std::wcout << L'\x251C';
+			Fillers(columns, L'\x2500', L'\x253C');
+			std::wcout << L'\x2524' << std::endl;
+		}
+	}
+	std::wcout << L'\x2514';
+	Fillers(columns, L'\x2500', L'\x2534');
+	std::wcout << L'\x2518' << std::endl;
 }
 
 void outputResultsFile(const std::string& File, std::vector<Sportsmen>& Participants) {
@@ -207,10 +203,8 @@ void outputResultsFile(const std::string& File, std::vector<Sportsmen>& Particip
 	const std::locale utf8_locale = std::locale(std::locale(), new std::codecvt_utf8<wchar_t>());
 	if (out.is_open()) {
 		out.imbue(utf8_locale);
-		wchar_t BOM = { 0xFEFF };
-		out << BOM;  //Добавляем BOM
 		out << "{\n";
-		for (int i = 0; i < Participants.size(); ++i) {
+		for (size_t i = 0; i < Participants.size(); ++i) {
 			out << "    \"" << i + 1 << "\": {\n";
 			out << "        \"";
 			out << L"Нагрудный номер\": \"" << Participants[i].Sign << "\",\n";
@@ -221,7 +215,7 @@ void outputResultsFile(const std::string& File, std::vector<Sportsmen>& Particip
 			out << "        \"";
 			out << L"Результат\": \"";
 			out << Participants[i].Resultat << "\"\n";
-			if (i < Participants.size() - 1) out << "    },\n";
+			if (i + 1 < Participants.size()) out << "    },\n";
 			else out << "    }\n";
 		}
 		out << "}";
