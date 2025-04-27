@@ -1,8 +1,9 @@
-﻿#include<iostream>
-#include<fstream>
-#include<iomanip>
-#include<codecvt>
-#include"Header.h"
+﻿#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <codecvt>
+#include <regex>
+#include "Header.h"
 
 bool operator<(const timer& arg1, const timer& arg2) {	//Сортировка результатов
 	if (arg1.seconds == 0 && arg1.miliseconds == 0) return false;
@@ -70,44 +71,50 @@ void parserFileSportsmens(const std::string& File, std::vector<Sportsmen>& Parti
 }
 
 void parserFileResults(const std::string& File, std::vector<Sportsmen>& Participants) { //Парсим файл с результатами
-	std::ifstream in(File);
 	std::map<int, int> Position;
 	for (size_t i = 0; i < Participants.size(); ++i) {
 		Position[Participants[i].Sign] = i;
 	}
-	if (in.is_open()) {
-		std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-		unsigned char B, O, M; //Проверка BOM
-		B = in.get();
-		O = in.get();
-		M = in.get();
-		if (B != 0xEF || O != 0xBB || M != 0xBF) {
-			in.seekg(0, std::ios_base::beg);
-		}
-		long sign = 0, hour = 0, minutes = 0, seconds = 0;
-		long milseconds;
-		const int sec_per_min = 60;
-		const int sec_per_hour = sec_per_min * 60;
-		std::string startorend;
-		while (!in.eof()) {
-			in >> sign >> startorend >> hour >> B >> minutes >> B >> seconds >> B >> milseconds;
-			if (in.fail()) break;
-			if (Position.count(sign)) {
-				sign = Position[sign];
-				if (startorend == "start") {
-					Participants[sign].result.seconds = -hour * sec_per_hour;
-					Participants[sign].result.seconds -= minutes * sec_per_min;
-					Participants[sign].result.seconds -= seconds;
-					Participants[sign].result.miliseconds = -milseconds;
+
+	std::ifstream in(File);
+	if (!in.is_open()) {
+		std::cerr << "Failed to open file " << File << std::endl;
+		return;
+	}
+
+	const int sec_per_min = 60;
+	const int sec_per_hour = sec_per_min * 60;
+	std::string line;
+	std::getline(in, line);
+
+	const std::regex regular("(\\d+)\\s+(\\w+)\\s+(\\d+):(\\d+):(\\d+),(\\d+)"); //Регулярное выражение для разделения строки
+
+	while (!in.eof()) {
+		std::smatch result;
+		if (line.find(":") != std::string::npos) {
+			for (auto i = std::sregex_iterator(line.begin(), line.end(), regular); i != std::sregex_iterator(); ++i) { //Выделяю нужные части строки
+				result = *i;
+				int sign = std::stoi(result[1]);
+				if (Position.count(sign)) sign = Position[sign];
+				else {
+					std::cerr << "Sportsman " << sign << " not registered" << std::endl;
+					break;
 				}
-				if (startorend == "finish") {
-					Participants[sign].result.seconds += (hour * sec_per_hour);
-					Participants[sign].result.seconds += (minutes * sec_per_min);
-					Participants[sign].result.seconds += seconds;
-					Participants[sign].result.miliseconds += milseconds;
-					hour = Participants[sign].result.seconds / sec_per_hour;
-					minutes = (Participants[sign].result.seconds / sec_per_min) - (hour * sec_per_min);
-					seconds = Participants[sign].result.seconds - (minutes * sec_per_min) - (hour * sec_per_min);
+				if (result[2] == "start") {
+					Participants[sign].result.seconds = -(std::stoi(result[3]) * sec_per_hour);
+					Participants[sign].result.seconds -= (std::stoi(result[4]) * sec_per_min);
+					Participants[sign].result.seconds -= std::stoi(result[5]);
+					Participants[sign].result.miliseconds = -std::stoi(result[6]);
+				}
+				else {
+					Participants[sign].result.seconds += (std::stoi(result[3]) * sec_per_hour);
+					Participants[sign].result.seconds += (std::stoi(result[4]) * sec_per_min);
+					Participants[sign].result.seconds += std::stoi(result[5]);
+					Participants[sign].result.miliseconds += std::stoi(result[6]);
+					int hour = Participants[sign].result.seconds / sec_per_hour;
+					int minutes = (Participants[sign].result.seconds / sec_per_min) - (hour * sec_per_min);
+					int seconds = Participants[sign].result.seconds - (minutes * sec_per_min) - (hour * sec_per_min);
+					int milseconds = (Participants[sign].result.miliseconds + 5000) / 10000;
 					if (minutes < 10)
 						Participants[sign].Resultat = L'0' + std::to_wstring(minutes) + L":";
 					else
@@ -116,18 +123,15 @@ void parserFileResults(const std::string& File, std::vector<Sportsmen>& Particip
 						Participants[sign].Resultat += (L'0' + std::to_wstring(seconds));
 					else
 						Participants[sign].Resultat += std::to_wstring(seconds);
-					if ((milseconds + 5000) / 10000 < 10)
-						Participants[sign].Resultat += (L",0" + std::to_wstring((milseconds + 5000) / 10000));
+					if (milseconds < 10)
+						Participants[sign].Resultat += (L",0" + std::to_wstring(milseconds));
 					else
-						Participants[sign].Resultat += (L',' + std::to_wstring((milseconds + 5000) / 10000));
+						Participants[sign].Resultat += (L',' + std::to_wstring(milseconds));
 				}
 			}
-			else
-				std::cerr << "Sportsman " << sign << " not registered" << std::endl;
 		}
+		std::getline(in, line);
 	}
-	else
-		std::cerr << "Failed to open file " << File << std::endl;;
 	in.close();
 }
 
@@ -215,9 +219,6 @@ void outputResultsFile(const std::string& File, std::vector<Sportsmen>& Particip
 			out << "        \"";
 			out << L"Фамилия\": \"" << Participants[i].Name << "\",\n";
 			out << "        \"";
-			//std::string msek = std::to_string(Sportmens[sign].result.seconds);
-			//if ((int)Sportmens[sign].result.seconds < 10) msek = '0' + msek;
-			//msek = msek.substr(0, 5);
 			out << L"Результат\": \"";
 			out << Participants[i].Resultat << "\"\n";
 			if (i < Participants.size() - 1) out << "    },\n";
