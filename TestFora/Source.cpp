@@ -7,14 +7,13 @@ const std::string FileResultsOutput = "final_results.json";
 
 int main() {
 	setlocale(LC_ALL, "ru_RU.UTF-8");
-	Sptmn Sportmens;
-	std::vector<int> Keys;
-	parserFileSportsmens(FileSportsmens, Sportmens, Keys);
-	parserFileResults(FileResultsRun, Sportmens);
-	std::sort(Keys.begin(), Keys.end(), 
-		[&Sportmens](int a, int b) {return Sportmens[a].result < Sportmens[b].result; });
-	outputResultsScr(Sportmens, Keys);
-	outputResultsFile(FileResultsOutput, Sportmens, Keys);
+	std::vector<Sportsmen> Participants;
+	parserFileSportsmens(FileSportsmens, Participants);			// Парсим файл с данными спортсменов
+	parserFileResults(FileResultsRun, Participants);			// Парсим файл с результатами
+	std::sort(Participants.begin(), Participants.end(),			// Сортировка результатов
+		[](auto a, auto b) {return a.result < b.result; });
+	outputResultsScr(Participants);								// Вывод результатов на экран
+	outputResultsFile(FileResultsOutput, Participants);			// Вывод результатов в файл
 	return 0;
 }
 

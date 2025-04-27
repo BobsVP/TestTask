@@ -38,7 +38,7 @@ std::wstring extractData(const std::wstring& input) { // Извлекаем со
 	return input.substr(start + 1, end - start - 1);
 }
 
-void parserFileSportsmens(const std::string& File, Sptmn& Sportmens, std::vector<int>& Keys) {  //Парсим файл с данными спортсменов
+void parserFileSportsmens(const std::string& File, std::vector<Sportsmen>& Participants) {  //Парсим файл с данными спортсменов
 	
 	std::wifstream in(File);
 
@@ -63,57 +63,18 @@ void parserFileSportsmens(const std::string& File, Sptmn& Sportmens, std::vector
 		if (line.find(L"Name") != std::string::npos) name = extractData(line);
 		if (line.find(L"Surname") != std::string::npos) {
 			surname = extractData(line);
-			Keys.push_back(sign);
-			Sportmens[sign] = Sportsmen{ sign, name, surname };
+			Participants.push_back(Sportsmen{ sign, name, surname });
 		}
-		//if (line.find(L"},") == std::string::npos) break;
 	}
-		//std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
-		//unsigned char B, O, M; //Проверка BOM
-		//B = in.get();
-		//O = in.get();
-		//M = in.get();
-		//if (B != 0xEF || O != 0xBB || M != 0xBF) {
-		//	in.seekg(0, std::ios_base::beg);
-		//}
-
-		//bool flag = false;
-
-		//while (!in.eof()) {
-		//	std::string line;
-		//	long long poziciya = line.find("\"");
-		//	if (poziciya == std::string::npos) continue;
-		//	else if (poziciya == 4) {	// Name, Surname
-		//		if (line.find("Name") != std::string::npos) {
-		//			name = line.substr(13, line.rfind("\"") - 13); // 13 Позиция начала поля Name 
-		//		}
-		//		if (line.find("Surname") != std::string::npos) {
-		//			surname = line.substr(16, line.rfind("\"") - 16);   // 16 Позиция начала поля Surname
-		//			flag = true;
-		//		}
-		//	}
-		//	else if (poziciya == 2) {	//Sign
-		//		for (auto simb : line) {
-		//			if (isdigit(simb)) sign += simb;
-		//		}
-		//	}
-		//	if (flag)
-		//	{
-		//		int key = std::stoi(sign);
-		//		Keys.push_back(key);
-		//		Sportmens[key] = 
-		//			Sportsmen{ converter.from_bytes(name.c_str()), converter.from_bytes(surname.c_str()) };
-		//		flag = false;
-		//		sign.clear();
-		//		name.clear();
-		//		surname.clear();
-		//	}
-		//}
 	in.close();
 }
 
-void parserFileResults(const std::string& File, Sptmn& Sportmens) { //Парсим файл с результатами
+void parserFileResults(const std::string& File, std::vector<Sportsmen>& Participants) { //Парсим файл с результатами
 	std::ifstream in(File);
+	std::map<int, int> Position;
+	for (size_t i = 0; i < Participants.size(); ++i) {
+		Position[Participants[i].Sign] = i;
+	}
 	if (in.is_open()) {
 		std::wstring_convert<std::codecvt_utf8<wchar_t>> converter;
 		unsigned char B, O, M; //Проверка BOM
@@ -131,49 +92,34 @@ void parserFileResults(const std::string& File, Sptmn& Sportmens) { //Парси
 		while (!in.eof()) {
 			in >> sign >> startorend >> hour >> B >> minutes >> B >> seconds >> B >> milseconds;
 			if (in.fail()) break;
-			if (Sportmens.count(sign)) {
+			if (Position.count(sign)) {
+				sign = Position[sign];
 				if (startorend == "start") {
-					Sportmens[sign].result.seconds = -hour * sec_per_hour;
-					Sportmens[sign].result.seconds -= minutes * sec_per_min;
-					Sportmens[sign].result.seconds -= seconds;
-					Sportmens[sign].result.miliseconds = -milseconds;
+					Participants[sign].result.seconds = -hour * sec_per_hour;
+					Participants[sign].result.seconds -= minutes * sec_per_min;
+					Participants[sign].result.seconds -= seconds;
+					Participants[sign].result.miliseconds = -milseconds;
 				}
 				if (startorend == "finish") {
-					Sportmens[sign].result.seconds += (hour * sec_per_hour);
-					Sportmens[sign].result.seconds += (minutes * sec_per_min);
-					Sportmens[sign].result.seconds += seconds;
-					Sportmens[sign].result.miliseconds += milseconds;
-					hour = Sportmens[sign].result.seconds / sec_per_hour;
-					minutes = (Sportmens[sign].result.seconds / sec_per_min) - (hour * sec_per_min);
-					seconds = Sportmens[sign].result.seconds - (minutes * sec_per_min) - (hour * sec_per_min);
-					//float varszpt = std::stof(seconds);
-					//std::replace(seconds.begin(), seconds.end(), ',', '.');
-					//float varstchk = std::stof(seconds);
-					//if (varszpt > varstchk)
-					//	Sportmens[sign].result.seconds = varszpt - Sportmens[sign].result.seconds;
-					//else
-					//	Sportmens[sign].result.seconds = varstchk - Sportmens[sign].result.seconds;
-					//if (Sportmens[sign].result.seconds < 0) {
-					//	--Sportmens[sign].result.minutes;
-					//	Sportmens[sign].result.seconds += sec_per_min;
-					//}
-					//if (Sportmens[sign].result.minutes < 0) {
-					//	--Sportmens[sign].result.hour;
-					//	Sportmens[sign].result.minutes += sec_per_min;
-					//}
+					Participants[sign].result.seconds += (hour * sec_per_hour);
+					Participants[sign].result.seconds += (minutes * sec_per_min);
+					Participants[sign].result.seconds += seconds;
+					Participants[sign].result.miliseconds += milseconds;
+					hour = Participants[sign].result.seconds / sec_per_hour;
+					minutes = (Participants[sign].result.seconds / sec_per_min) - (hour * sec_per_min);
+					seconds = Participants[sign].result.seconds - (minutes * sec_per_min) - (hour * sec_per_min);
 					if (minutes < 10)
-						Sportmens[sign].Resultat = L'0' + std::to_wstring(minutes) + L":";
+						Participants[sign].Resultat = L'0' + std::to_wstring(minutes) + L":";
 					else
-						Sportmens[sign].Resultat = std::to_wstring(minutes) + L":";
+						Participants[sign].Resultat = std::to_wstring(minutes) + L":";
 					if (seconds < 10)
-						Sportmens[sign].Resultat += (L'0' + std::to_wstring(seconds));
+						Participants[sign].Resultat += (L'0' + std::to_wstring(seconds));
 					else
-						Sportmens[sign].Resultat += std::to_wstring(seconds);
+						Participants[sign].Resultat += std::to_wstring(seconds);
 					if ((milseconds + 5000) / 10000 < 10)
-						Sportmens[sign].Resultat += (L",0" + std::to_wstring((milseconds + 5000) / 10000));
+						Participants[sign].Resultat += (L",0" + std::to_wstring((milseconds + 5000) / 10000));
 					else
-						Sportmens[sign].Resultat += (L',' + std::to_wstring((milseconds + 5000) / 10000));
-					//Sportmens[sign].Resultat = Sportmens[sign].Resultat.substr(0, 8);
+						Participants[sign].Resultat += (L',' + std::to_wstring((milseconds + 5000) / 10000));
 				}
 			}
 			else
@@ -232,28 +178,27 @@ void ZaverTab() {
 	std::wcout << L"\x2518" << std::endl;
 }
 
-void outputResultsScr(Sptmn& Sportmens, const std::vector<int>& Keys) {
+void outputResultsScr(std::vector<Sportsmen>& Participants) {
 	Shapka();
 	PromegStr();
-	for (size_t i = 0; i < Keys.size(); ++i) {
-		int sign = Keys[i];
+	for (size_t i = 0; i < Participants.size(); ++i) {
 		std::wcout << L"\x2502";
 		std::wcout << std::setw(13) << std::left << i + 1;
 		std::wcout << L"\x2502";
-		std::wcout << std::setw(15) << std::left << sign;
+		std::wcout << std::setw(15) << std::left << Participants[i].Sign;
 		std::wcout << L"\x2502";
-		std::wcout << std::setw(11) << std::left << Sportmens[sign].Surname;
+		std::wcout << std::setw(11) << std::left << Participants[i].Surname;
 		std::wcout << L"\x2502";
-		std::wcout << std::setw(11) << std::left << Sportmens[sign].Name << "\t";
+		std::wcout << std::setw(11) << std::left << Participants[i].Name << "\t";
 		std::wcout << L"\x2502";
-		std::wcout << std::setw(8) << std::left << Sportmens[sign].Resultat;
+		std::wcout << std::setw(8) << std::left << Participants[i].Resultat;
 		std::wcout << L" \x2502" << std::endl;
-		if (i < Keys.size() - 1) PromegStr();
+		if (i < Participants.size() - 1) PromegStr();
 	}
 	ZaverTab();
 }
 
-void outputResultsFile(const std::string& File, Sptmn& Sportmens, const std::vector<int>& Keys) {
+void outputResultsFile(const std::string& File, std::vector<Sportsmen>& Participants) {
 	std::wofstream out(File);
 	const std::locale utf8_locale = std::locale(std::locale(), new std::codecvt_utf8<wchar_t>());
 	if (out.is_open()) {
@@ -261,22 +206,21 @@ void outputResultsFile(const std::string& File, Sptmn& Sportmens, const std::vec
 		wchar_t BOM = { 0xFEFF };
 		out << BOM;  //Добавляем BOM
 		out << "{\n";
-		for (int i = 0; i < Keys.size(); ++i) {
-			int sign = Keys[i];
+		for (int i = 0; i < Participants.size(); ++i) {
 			out << "    \"" << i + 1 << "\": {\n";
 			out << "        \"";
-			out << L"Нагрудный номер\": \"" << sign << "\",\n";
+			out << L"Нагрудный номер\": \"" << Participants[i].Sign << "\",\n";
 			out << "        \"";
-			out << L"Имя\": \"" << Sportmens[sign].Surname << "\",\n";
+			out << L"Имя\": \"" << Participants[i].Surname << "\",\n";
 			out << "        \"";
-			out << L"Фамилия\": \"" << Sportmens[sign].Name << "\",\n";
+			out << L"Фамилия\": \"" << Participants[i].Name << "\",\n";
 			out << "        \"";
-			std::string msek = std::to_string(Sportmens[sign].result.seconds);
-			if ((int)Sportmens[sign].result.seconds < 10) msek = '0' + msek;
-			msek = msek.substr(0, 5);
+			//std::string msek = std::to_string(Sportmens[sign].result.seconds);
+			//if ((int)Sportmens[sign].result.seconds < 10) msek = '0' + msek;
+			//msek = msek.substr(0, 5);
 			out << L"Результат\": \"";
-			out << Sportmens[sign].Resultat << "\"\n";
-			if (i < Keys.size() - 1) out << "    },\n";
+			out << Participants[i].Resultat << "\"\n";
+			if (i < Participants.size() - 1) out << "    },\n";
 			else out << "    }\n";
 		}
 		out << "}";
