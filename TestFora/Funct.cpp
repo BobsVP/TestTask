@@ -26,6 +26,9 @@ bool operator<(const timer& arg1, const timer& arg2) {	//Сортировка р
 }
 
 std::wstring extractData(const std::wstring& input) { // Извлекаем содержимое между кавычками
+	if (input.empty()) { // Проверка на пустую строку
+		return L"";
+	}
 	size_t end = input.rfind(L'"');
 	if (end == std::wstring::npos) {
 		return L"";
@@ -44,7 +47,8 @@ void parserFileSportsmens(const std::string& File, std::vector<Sportsmen>& Parti
 	std::wifstream in(File);
 
 	if (!in.is_open()) {
-		std::cerr << "Failed to open file " << File << std::endl;;
+		std::cerr << "Failed to open file " << File << std::endl;
+		return;
 	}
 
 	in.imbue(std::locale("ru_RU.UTF-8"));
@@ -145,8 +149,7 @@ void Fillers(const std::vector<size_t>& columns, const wchar_t symb, const wchar
 
 template<typename T>
 void Fillers_data(const size_t colm, T str) {
-	std::wcout << L'\x2502';
-	std::wcout << std::setw(colm) << std::left << str;
+	std::wcout << L'\x2502' << std::setw(colm) << std::left << str;
 }
 
 void outputResultsScr(std::vector<Sportsmen>& Participants) {
@@ -201,24 +204,20 @@ void outputResultsScr(std::vector<Sportsmen>& Participants) {
 void outputResultsFile(const std::string& File, std::vector<Sportsmen>& Participants) {
 	std::wofstream out(File);
 	const std::locale utf8_locale = std::locale(std::locale(), new std::codecvt_utf8<wchar_t>());
-	if (out.is_open()) {
-		out.imbue(utf8_locale);
-		out << "{\n";
-		for (size_t i = 0; i < Participants.size(); ++i) {
-			out << "    \"" << i + 1 << "\": {\n";
-			out << "        \"";
-			out << L"Нагрудный номер\": \"" << Participants[i].Sign << "\",\n";
-			out << "        \"";
-			out << L"Имя\": \"" << Participants[i].Surname << "\",\n";
-			out << "        \"";
-			out << L"Фамилия\": \"" << Participants[i].Name << "\",\n";
-			out << "        \"";
-			out << L"Результат\": \"";
-			out << Participants[i].Resultat << "\"\n";
-			if (i + 1 < Participants.size()) out << "    },\n";
-			else out << "    }\n";
-		}
-		out << "}";
+	if (!out.is_open()) {
+		std::cerr << "Failed to open file " << File << std::endl;
+		return; 
 	}
+	out.imbue(utf8_locale);
+	out << "{\n";
+	for (size_t i = 0; i < Participants.size(); ++i) {
+		out << L"    \"" << i + 1 << "\": {\n";
+		out << L"        \"Нагрудный номер\": \"" << Participants[i].Sign << "\",\n";
+		out << L"        \"Имя\": \"" << Participants[i].Surname << "\",\n";
+		out << L"        \"Фамилия\": \"" << Participants[i].Name << "\",\n";
+		out << L"        \"Результат\": \"" << Participants[i].Resultat << "\"\n";
+		out << L"    }" << (i + 1 < Participants.size() ? L",\n" : L"\n");
+	}
+	out << "}";
 	out.close();
 }
